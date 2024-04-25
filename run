@@ -1,0 +1,277 @@
+#!/bin/bash
+
+#  Defaults
+CAT=cat
+test -f /bin/bat && CAT=/bin/bat
+
+#EDITOR=vim
+#DEFAULT_VIM_COMMANDS=""
+DEFAULT_VIM_COMMANDS="set spell"
+EDITOR=nvim
+#test -f /bin/ed && EDITOR=/bin/ed
+
+# Dirs
+BD=~/.note_unfancy
+PRIVATE=$BD/.private
+SVD=$PRIVATE/archive
+# Files
+FILE=$BD/note.no
+TEMP=$PRIVATE/.temp.no
+SWP="$PRIVATE/.swap.no"
+
+
+#  text for when there are no notes to display
+header () {
+    echo "
+        Note Unfancy
+
+    You don't have any notes yet, or you would see them.
+    Give noteunfancy notes.
+
+------------------------------------------------------------
+
+             Use the -h flag for more options
+"
+}
+ 
+
+#  Help
+help () {
+    echo "
+  note         Prints last 5 lines of Note File 
+  note {args}  Args are added as notes EOF
+
+       -h     Help
+       -m     Multi line mode
+       -r     Remove note  in the note file
+       -e     Opens note file in editor
+       -f     Print full note file
+       -d     Delete note file
+       -S     Swap the note file with the Swap File
+
+       -a         Move current note file the archive directory
+       -g {args}  Find matching string notes
+       -A         Print all archives
+"
+    return 0
+    }
+ 
+
+ 
+note_run () {
+    if [ $# -eq 0 ]; then
+        lines=$(wc -l $FILE | awk '{print $1}')
+        if [ "$lines" -eq 1 ]; then
+            header
+        else
+            tail -5 $FILE | $CAT
+        fi
+    else
+        echo "    $@" >> $FILE
+    fi
+    return 0
+    }
+ 
+
+note_opts () {
+    makeFILE
+    while getopts 'hmrefdag:SA' flag; do
+        case $flag in
+            h) help;;
+            m) multi ;;
+            r) remove ;;
+            e) edit ;;
+            f) full ;;
+            d) delete ;;
+            a) makearchive ;;
+            g) notegrep $OPTARG ;;
+            S) doSWP ;;
+            A) catarchive ;;
+        esac
+        return $?
+    done
+    note_run $@
+    return $?
+}
+
+
+# Multi line mode
+multi () {
+    echo "
+    Notes
+Multi-line Mode:
+Enter '.' on a new line to exit"
+
+    read -p ">    " line
+    if [ "$line" != "." ]; then
+        echo "--------" >> $FILE
+        while [ "$line" != "." ]; do
+            echo "|   $line" >> $FILE
+            read -p ">    " line
+        done
+        echo "--------" >> $FILE
+    fi
+    return 0
+    }
+ 
+#  Remove an item from notes
+remove () {
+    echo
+    line_num=1
+    touch $TEMP
+    line=$(tail -$line_num $FILE)
+    if [ "$line" = "--------" ]; then
+        prev=''
+        while [ "$prev" != "--------" ]; do
+            line_num=$((line_num+1))
+            prev=$(tail -$line_num $FILE | head -1)
+        done
+        tail -$line_num $FILE | $CAT
+    else
+        echo -e "\033[32m$line\033[00m"
+        echo
+    fi
+    read -p "  Do you want to remove this note? (y/N) " ans
+    if [ "$ans" = "y" ] || [ "$ans" = "Y" ] || [ "$ans" = "yes" ]; then
+        head -n -$line_num $FILE > $TEMP
+        $CAT $TEMP > $FILE
+    fi
+    return 0
+    }
+ 
+#  Open the note file in an editor
+edit () {
+    if [ "$EDITOR" = "nvim" ] || [ "$EDITOR" = "vim" ]; then 
+        if test -z "$DEFAULT_VIM_COMMANDS"; then
+            $EDITOR  $FILE
+        else
+            $EDITOR -c "$DEFAULT_VIM_COMMANDS" $FILE
+        fi
+    else
+        $EDITOR  $FILE
+    fi
+    return 0
+    }
+ 
+ 
+#  Save the notes
+ 
+# Swap
+doSWP () {
+    if test -f $SWP; then
+        echo swap file found
+    else
+        touch $SWP
+        echo creating empty swap file
+        date > $SWP
+    fi
+    $CAT $FILE > $TEMP
+    $CAT $SWP > $FILE
+    $CAT $TEMP > $SWP
+    echo swapped
+    return 0
+    }
+ 
+ 
+# Full
+full () {
+    $CAT $FILE
+    return 0
+}
+ 
+ 
+# Delete
+delete () {
+    $CAT $FILE
+    echo
+    echo -e "\033[32m  $(wc -l $FILE | awk '{ print $1 }' ) lines total\033[00m"
+    echo
+    read -p "    Do you want to delete this Note File? (y/N) " ans
+    if [ "$ans" = "y" ] || [ "$ans" = "Y" ] || [ "$ans" = "yes" ]; then
+        date > $FILE
+    fi
+    return 0
+}
+ 
+ 
+# Archive
+makearchive () {
+    read -p "    Archive your Note File? (y/N) " ans
+    if [ "$ans" = "y" ] || [ "$ans" = "Y" ] || [ "$ans" = "yes" ]; then
+        path="$SVD/$(date '+%y%m%d_%H-%M-%S').no"
+        touch $path
+        date >> $path
+        echo Archive >> $path
+        $CAT $FILE >> $path
+        date > $FILE
+        echo Archival complete
+    fi
+    return 0
+    }
+ 
+
+# Show archived
+catarchive () {
+    $CAT $SVD/*
+    return 0
+    }
+ 
+ 
+# Grep
+notegrep () {
+    grep -Iirn --color $@ $SVD
+    test -f $SWP && echo -e "\033[32m$SWP\033[00m"
+    grep -Iins --color $@ $SWP 
+    echo -e "\033[32m$FILE\033[00m"
+    grep -Iin --color $@ $FILE 
+    return 0
+    }
+ 
+ 
+makeFILE () {
+    touch $FILE
+    lines=$(wc -l $FILE | awk '{print $1}')
+    if [ "$lines" -eq 0 ]; then
+        date > $FILE
+    fi
+}
+
+
+note_fs () {
+    echo '        Creating directories'
+    if test -d $BD; then
+        echo -e "$BD\033[32m    found\033[00m"
+    else
+        mkdir $BD
+        echo -e "\033[32m    $BD    created\033[00m"
+    fi
+    if test -d $PRIVATE; then
+        echo -e "\033[32m    $PRIVATE    found\033[00m"
+    else
+        mkdir $PRIVATE
+        echo -e "\033[32m    $PRIVATE    created\033[00m"
+    fi
+    if test -d $SVD; then
+        echo -e "\033[32m    $SVD   found\033[00m"
+    else
+        mkdir $SVD
+        echo -e "\033[32m    $SVD   created\033[00m"
+    fi
+    echo ------------------------------------------------------------
+    return $?
+}
+
+ 
+function note_unfancy () {
+     
+    if test -d $BD && test -d $PRIVATE && test -d $SVD; then
+        note_opts $@
+    else
+        note_fs
+        note_opts $@
+    fi
+    return $?
+}
+
+
+note_unfancy $@
