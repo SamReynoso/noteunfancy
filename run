@@ -75,7 +75,7 @@ note_run () {
 
 note_opts () {
     makeFILE
-    while getopts 'hmrefdag:SA' flag; do
+    while getopts 'hmrefdagSA' flag; do
         case $flag in
             h) help;;
             m) multi ;;
@@ -84,7 +84,7 @@ note_opts () {
             f) full ;;
             d) delete ;;
             a) makearchive ;;
-            g) notegrep $OPTARG ;;
+            g) notegrep $@ ;;
             S) doSWP ;;
             A) catarchive ;;
         esac
@@ -219,11 +219,14 @@ catarchive () {
  
 # Grep
 notegrep () {
-    grep -Iirn --color $@ $SVD
+    shift
+    args="$*"
+    echo $args
+    grep -Iirn --color "$args" $SVD
     test -f $SWP && echo -e "\033[32m$SWP\033[00m"
-    grep -Iins --color $@ $SWP 
+    grep -Iins --color "$args" $SWP 
     echo -e "\033[32m$FILE\033[00m"
-    grep -Iin --color $@ $FILE 
+    grep -Iin --color "$args" $FILE 
     return 0
     }
  
