@@ -60,7 +60,7 @@ The output from -h will show available options.
 
 ### The workflow
 - -a to Archive
-- -q to Grep notes
+- -g to Grep notes
 
 ```shell
 note This I the note with the word in it.
