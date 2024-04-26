@@ -77,3 +77,5 @@ Archival complete
 note -g word
 ~/.note_unfancy/.private/archive/240425_144735.no:4:    This is the note with the word in it.
 ~/.note_unfancy/.private/.swap.no
+~/.note_unfancy/note.no
+```
