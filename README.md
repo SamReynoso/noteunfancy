@@ -34,7 +34,7 @@ Thu Apr 25 11:47:35 AM PDT 2024
 --------
 ```
 
-Remove a note with the r flag.
+Remove a note with the -r flag.
 
 ```shell
 note -r
@@ -50,7 +50,7 @@ Run this script directly.
 
 This script will look for a directory at ~/.note_unfancy. You could simply
 create that directory, and put the script there, or clone the repo inside, and
-alias the executable to note.
+alias the executable as note.
 
 ### POSIX
 This script was written in Bash.
@@ -63,19 +63,17 @@ The output from -h will show available options.
 - -g to Grep notes
 
 ```shell
-note This I the note with the word in it.
+note This is the note with the word in it.
 
 note -g word
 ~/.note_unfancy/.private/.swap.no
 ~/.note_unfancy/note.no
-2:    This I the note with the word in it.
+2:    This is the note with the word in it.
 
 note -a
-    Archive you Note File? (y/N)
+    Archive your Note File? (y/N)
 Archival complete
 
 note -g word
-~/.note_unfancy/.private/archive/240425_144735.no:4:    This I the note with the word in it.
+~/.note_unfancy/.private/archive/240425_144735.no:4:    This is the note with the word in it.
 ~/.note_unfancy/.private/.swap.no
-~/.note_unfancy/note.no
-```
