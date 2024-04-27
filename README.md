@@ -6,7 +6,7 @@ lines later, and you don't remember the note you wanted to write down anyway?
 If the answer is NO then you're in luck. Note Unfancy is here.
 
 ## Usage
-Add by passing the note as arguments, or use the -m flag to enter multi-line
+Add by passing the note as arguments, or use the -m flag for multi-line
 mode.
 
 ```shell
@@ -21,7 +21,7 @@ Enter '.' on a new line to exit
 >    .
 ```
 
-Pass zero args to read the last 5 line, or use the -f flag for the complete
+Pass zero args to read the last 5 lines, or use the -f flag for the complete
 file.
 
 ```shell
