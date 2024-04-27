@@ -45,8 +45,7 @@ into this directory and alias the executable as `note`.
 
 ### POSIX Compatibility
 
-Note Unfancy is written in Bash and is POSIX compliant.
-Here's the updated "Advanced Features" section with the suggested additions:
+Note Unfancy is POSIX compliant.
 
 ## Advanced Features
 
