@@ -1,29 +1,28 @@
-#!/bin/bash
+#!/bin/sh
 
 #  Defaults
 CAT=/bin/cat
 test -f /bin/bat && CAT=/bin/bat
 
-#EDITOR=vim
+EDITOR=vim
 #DEFAULT_VIM_COMMANDS=""
-DEFAULT_VIM_COMMANDS="set spell"
-EDITOR=nvim
+test -f /bin/nvim && EDITOR=nvim
 #test -f /bin/ed && EDITOR=/bin/ed
+DEFAULT_VIM_COMMANDS="set spell"
 
-# Dirs
-BD=~/.note_unfancy
-PRIVATE=$BD/.private
-SVD=$PRIVATE/archive
-# Files
-FILE=$BD/note.no
-TEMP=$PRIVATE/.temp.no
-SWP="$PRIVATE/.swap.no"
+# Directories and files
+BASE_DIR=~/.note_unfancy
+PRIVATE_DIR=$BASE_DIR/.private
+ARCHIVE_DIR=$PRIVATE_DIR/archive
+FILE=$BASE_DIR/note.no
+TEMP=$PRIVATE_DIR/.temp.no
+SWP="$PRIVATE_DIR/.swap.no"
 
 
-#  text for when there are no notes to display
-header () {
+#  Displayed when there are no notes
+print_header () {
     echo "
-        Note Unfancy
+    Note Unfancy
 
     You don't have any notes yet, or you would see them.
     Give noteunfancy notes.
@@ -36,7 +35,7 @@ header () {
  
 
 #  Help
-help () {
+print_help () {
     echo "
   note         Prints last 5 lines of Note File 
   note {args}  Args are added as notes EOF
@@ -58,12 +57,12 @@ help () {
  
 
  
-note_run () {
+run_note () {
     if [ $# -eq 0 ]; then
         lines=$(awk 'END {print NR}' $FILE)
         echo
         if [ "$lines" -eq 1 ]; then
-            header
+            print_header
         else
             tail -5 $FILE | $CAT
         fi
@@ -78,27 +77,27 @@ note_opts () {
     makeFILE
     while getopts 'hmrefdagSA' flag; do
         case $flag in
-            h) help;;
-            m) multi ;;
+            h) print_help ;;
+            m) multi_line_mode;;
             r) remove ;;
             e) edit ;;
-            f) full ;;
+            f) print_full ;;
             d) delete ;;
-            a) makearchive ;;
-            g) notegrep $@ ;;
+            a) make_new_archive ;;
+            g) grep_notes $@ ;;
             S) doSWP ;;
-            A) catarchive ;;
+            A) cat_archive ;;
             *) return 1
         esac
         return $?
     done
-    note_run "$@"
+    run_note "$@"
     return $?
 }
 
 
 # Multi line mode
-multi () {
+multi_line_mode() {
     echo "
     Notes
 Multi-line Mode:
@@ -121,6 +120,7 @@ Enter '.' on a new line to exit."
 #  Remove an item from notes
 remove () {
     line_num=$(awk 'END {print NR}' $FILE)
+    if [ "$line_num" = "1" ]; then echo "empty"; exit 0; fi
     touch $TEMP
     line=$(awk 'END {print}' $FILE)
     if [ "$line" = "--------" ]; then
@@ -178,7 +178,7 @@ doSWP () {
  
  
 # Full
-full () {
+print_full () {
     $CAT $FILE
     return 0
 }
@@ -198,8 +198,8 @@ delete () {
  
  
 # Archive
-makearchive () {
-    if [ "$(awk 'END {print NR}' $FILE)" == '1' ]; then echo empty; exit 1; fi
+make_new_archive () {
+    if [ "$(awk 'END {print NR}' $FILE)" = "1" ]; then echo empty; exit 1; fi
     printf "    Archive your Note File? (y/N) "
     read -r ans
     if [ "$ans" = "y" ] || [ "$ans" = "Y" ] || [ "$ans" = "yes" ]; then
@@ -216,17 +216,17 @@ makearchive () {
  
 
 # Show archived
-catarchive () {
-    $CAT $SVD/*
+cat_archive () {
+    $CAT $ARCHIVE_DIR/*
     return 0
     }
  
  
 # Grep
-notegrep () {
+grep_notes () {
     shift
     args=$*
-    grep -irn --color "$args" $SVD
+    grep -irn --color "$args" $ARCHIVE_DIR
     test -f $SWP && printf "%b" "\033[32m$SWP\033[00m\n"
     grep -ins --color "$args" $SWP 
     printf "%b" "\033[32m$FILE\033[00m\n"
@@ -246,23 +246,23 @@ makeFILE () {
 
 note_fs () {
     echo '        Creating directories'
-    if test -d $BD; then
-        printf "%b"  "\033[32m$BD    found\033[00m\n"
+    if test -d $BASE_DIR; then
+        printf "%b"  "\033[32m$BASE_DIR    found\033[00m\n"
     else
-        printf "%b"  "\033[32m    $BD    created\033[00m\n"
-        mkdir $BD
+        printf "%b"  "\033[32m    $BASE_DIR    created\033[00m\n"
+        mkdir $BASE_DIR
     fi
-    if test -d $PRIVATE; then
-        printf "%b"  "\033[32m$PRIVATE    found\033[00m\n"
+    if test -d $PRIVATE_DIR; then
+        printf "%b"  "\033[32m$PRIVATE_DIR    found\033[00m\n"
     else
-        printf "%b"  "\033[32m    $PRIVATE    created\033[00m\n"
-        mkdir $PRIVATE
+        printf "%b"  "\033[32m    $PRIVATE_DIR    created\033[00m\n"
+        mkdir $PRIVATE_DIR
     fi
-    if test -d $SVD; then
-        printf "%b"  "\033[32m$SVD    found\033[00m\n"
+    if test -d $ARCHIVE_DIR; then
+        printf "%b"  "\033[32m$ARCHIVE_DIR    found\033[00m\n"
     else
-        printf "%b"  "\033[32m    $SVD    created\033[00m\n"
-        mkdir $SVD
+        printf "%b"  "\033[32m    $ARCHIVE_DIR    created\033[00m\n"
+        mkdir $ARCHIVE_DIR
     fi
     ret="$?"
     echo ------------------------------------------------------------
@@ -271,7 +271,7 @@ note_fs () {
 
  
 note_unfancy () {
-    if test -d $BD && test -d $PRIVATE && test -d $SVD; then
+    if test -d $BASE_DIR && test -d $PRIVATE_DIR && test -d $ARCHIVE_DIR; then
         note_opts "$@"
     else
         note_fs
