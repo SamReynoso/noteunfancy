@@ -1,19 +1,17 @@
 # Note Unfancy
-Have you ever wanted a quick way to save a one line note from the terminal, so
-you start writing a shell script that will echo to a file, but then it's 300
-lines later, and you don't remember the note you wanted to write down anyway?
+A simple full-featured note management tool.
 
 
 ## Usage
 
 To make the most of Note Unfancy, follow these steps:
 
-1. **Adding Notes**: Use the `note` command followed by your note text to add 
+1. **Adding Notes**: Use the 'note' command followed by your note text to add 
 a new note. For multi-line notes, utilize the `-m` flag.
 
 ```shell
-note This is a new note.
-note -m
+`$ note` This is a new note.
+`$ note` -m
     Notes
     Multi-line Mode:
     Enter '.' on a new line to exit
@@ -21,57 +19,45 @@ note -m
     > I can exit with a full stop on a new line.
     > .
 ```
-
-2. **Retrieving Notes**: Retrieve the last 5 lines of notes or the complete 
-file using the `-f` flag.
-
-```shell
-note -f
-```
-
-3. **Removing Notes**: Remove a note using the `-r` flag.
-
-```shell
-note -r
-```
-
-## Installation
-
-To install Note Unfancy:
-
-1. Execute the script directly.
-2. Ensure a directory named `~/.note_unfancy` exists. Clone the repository 
-into this directory and alias the executable as `note`.
-
-### POSIX Compatibility
-
-Note Unfancy is written in Bash and is POSIX compliant.
-Here's the updated "Advanced Features" section with the suggested additions:
-
-## Advanced Features
-
-In addition to basic note-taking functionality, Note Unfancy offers advanced 
-features for enhanced usability. The output from `-h` will show available 
-options.
-
 ### The Workflow
 
+
+- **-S to Swap**: Use the `-S` flag to switch between live note files.
 - **-a to Archive**: Use the `-a` flag to archive notes for long-term storage.
-- **-g to Grep notes**: Utilize the `-g` flag followed by a keyword to search 
+- **-g to Grep notes**: Use the `-g` flag followed by a keyword/s to search 
 for notes containing specific terms.
+- **-o to Open notes**: Similar to '-g', this option refine the search further
+with dmenu and opens your selection in a text editor.(requires dmenu)
 
 ```shell
-note This is the note with the keyword in it.
+`$ note` This is the text with the keyword in it.
 
-note -g keyword
+`$ note` -g keyword
 ~/.note_unfancy/.private/.swap.no
 ~/.note_unfancy/note.no
 2:    This is the note with the keyword in it.
 
-note -a
+`$ note` -a
     Archive your Note File? (y/N)
 Archival complete
 
-note -g keyword
+`$ note` -g keyword
 ~/.note_unfancy/.private/archive/240425_144735.no:4:    This is the note keywith the word in it.
 ~/.note_unfancy/.private/.swap.no
+~/.note_unfancy/note.no
+```
+
+### POSIX Compatibility
+
+Yes, POSIX compliant.
+
+## Installation
+-Run this script directly.
+
+### Dependencies
+   - ed (optional) I was going to make this the default but for got how to use
+   it myself.
+   - vim or nvim (optional) Redefine the EDITOR variable after the defaults
+   section to use something else.
+   - bat (optional) Defaults to cat if not present.
+   - dmenu (optional?) The '-o' option will not work with out it.
