@@ -1,37 +1,51 @@
 #!/bin/sh
 
 #  Defaults
+DEFAULT_VIM_COMMANDS="set spell"
+EDITOR=''
+#if command -v ed; then EDITOR=ed; fi
+if test -f /bin/vim; then EDITOR=vim; fi
+if test -f /bin/nvin || test -f /usr/bin/nvim ; then EDITOR=nvim; fi
+test "$EDITOR" = '' && echo "Vim note found. Add an editor to defaults"
+
 CAT=/bin/cat
 test -f /bin/bat && CAT=/bin/bat
 
-EDITOR=vim
-#DEFAULT_VIM_COMMANDS=""
-test -f /bin/nvim && EDITOR=nvim
-#test -f /bin/ed && EDITOR=/bin/ed
-DEFAULT_VIM_COMMANDS="set spell"
-
 # Directories and files
 BASE_DIR=~/.note_unfancy
+FILE=$BASE_DIR/note.no
 PRIVATE_DIR=$BASE_DIR/.private
 ARCHIVE_DIR=$PRIVATE_DIR/archive
-FILE=$BASE_DIR/note.no
 TEMP=$PRIVATE_DIR/.temp.no
 SWP="$PRIVATE_DIR/.swap.no"
 
 
-#  Displayed when there are no notes
-print_header () {
-    echo "
-    Note Unfancy
-
-    You don't have any notes yet, or you would see them.
-    Give noteunfancy notes.
-
-------------------------------------------------------------
-
-             Use the -h flag for more options
-"
+# Check/makes directories and pass all args to note_opts
+note_unfancy () {
+    if test -d $BASE_DIR && test -d $PRIVATE_DIR && test -d $ARCHIVE_DIR
+    then
+        note_opts "$@"
+    else
+        make_dirs
+        note_opts "$@"
+    fi
+    return $?
 }
+
+
+# Prints the last 5 lines of the note file or add to the end of the file.
+run_note () {
+    if [ $# -eq 0 ]; then
+        lines=$(awk 'END {print NR}' $FILE)
+        if [ "$lines" -eq 1 ]; then
+            print_header
+        else
+            tail -5 $FILE | $CAT
+        fi
+    else
+        echo "    $*" >> $FILE
+    fi
+    }
  
 
 #  Help
@@ -50,32 +64,15 @@ print_help () {
 
        -a         Move current note file the archive directory
        -g {args}  Find matching string notes
+       -o {args}  Find matching string and open with dmenu.
        -A         Print all archives
 "
-    return 0
     }
  
-
- 
-run_note () {
-    if [ $# -eq 0 ]; then
-        lines=$(awk 'END {print NR}' $FILE)
-        echo
-        if [ "$lines" -eq 1 ]; then
-            print_header
-        else
-            tail -5 $FILE | $CAT
-        fi
-    else
-        echo "    $*" >> $FILE
-    fi
-    return 0
-    }
- 
-
+# Runs Opt or if none runs the function run_note 
 note_opts () {
-    makeFILE
-    while getopts 'hmrefdagSA' flag; do
+    make_FILE
+    while getopts 'hmrefdagoSA' flag; do
         case $flag in
             h) print_help ;;
             m) multi_line_mode;;
@@ -84,8 +81,9 @@ note_opts () {
             f) print_full ;;
             d) delete ;;
             a) make_new_archive ;;
-            g) grep_notes $@ ;;
-            S) doSWP ;;
+            g) grep_notes "$@" ;;
+            o) grep_menu "$@" ;;
+            S) do_swap;;
             A) cat_archive ;;
             *) return 1
         esac
@@ -94,6 +92,7 @@ note_opts () {
     run_note "$@"
     return $?
 }
+
 
 
 # Multi line mode
@@ -114,14 +113,105 @@ Enter '.' on a new line to exit."
         done
         echo "--------" >> $FILE
     fi
-    return 0
     }
  
-#  Remove an item from notes
+# Swap the to note files
+do_swap () {
+    if test -f $SWP; then
+        echo "Swapping file."
+    else
+        touch $SWP
+        echo "Creating empty swap file."
+        date > $SWP
+    fi
+    mv $FILE $TEMP
+    mv $SWP $FILE
+    mv $TEMP $SWP
+    echo "Swapped note file with swap file."
+    }
+ 
+ 
+# Archive to the Archive directory and clear the note file.
+make_new_archive () {
+    if [ "$(awk 'END {print NR}' $FILE)" = "1" ]; then
+        echo "The note file is empty"
+        exit 1
+    fi
+
+    printf "Archive your note file? (y/N) "
+    read -r ans
+    if [ "$ans" = "y" ] || [ "$ans" = "Y" ] || [ "$ans" = "yes" ]; then
+        archive_path="$ARCHIVE_DIR/$(date '+%y%m%d_%H-%M-%S').no"
+        touch "$archive_path"
+        date > "$archive_path"
+        echo "Archive" >> "$archive_path"
+        cat $FILE >> "$archive_path"
+        date > $FILE
+        echo "Archival complete"
+    fi
+    }
+ 
+
+# Show archived note in the Archive directory
+cat_archive () {
+    $CAT $ARCHIVE_DIR/*
+    }
+ 
+# greps not into demenu and opens the selected note in editor. At line number
+# if editor is vim or neovime.
+grep_menu () {
+    shift
+    if ! test -f "/bin/dmenu"; then
+        echo "Error: 'dmenu' must be installed for this option."
+        exit 1
+    fi
+
+    args="$*"
+    hits=$(grep -irn "$args" $ARCHIVE_DIR/* "$SWP" "$FILE")
+    selected=$(printf "%b" "$hits" | dmenu -l 20 | cut -d ":" -f 1-2)
+    if [ -n "$selected" ]; then
+        file_path="${selected%:*}"
+        line_number="${selected#*:}"
+        if [ "${EDITOR#*vim}" = '' ]
+        then
+            if test -z "$DEFAULT_VIM_COMMANDS"; then
+                $EDITOR +"$line_number" "$file_path"
+            else
+                $EDITOR +"$line_number" -c "$DEFAULT_VIM_COMMANDS" "$file_path"
+            fi
+        else
+            $EDITOR "$file_path"
+        fi
+    fi
+}
+ 
+
+# Grep all notes in readable way
+grep_notes () {
+    shift
+    args=$*
+    grep -irn --color "$args" $ARCHIVE_DIR
+    test -f $SWP && printf "%b" "\033[32m$SWP\033[00m\n"
+    grep -ins --color "$args" $SWP 
+    printf "%b" "\033[32m$FILE\033[00m\n"
+    grep -in --color "$args" $FILE 
+    }
+ 
+
+# Print the note file.
+print_full () {
+    $CAT $FILE
+}
+ 
+
+# Remove an entry from notes
 remove () {
     line_num=$(awk 'END {print NR}' $FILE)
-    if [ "$line_num" = "1" ]; then echo "empty"; exit 0; fi
-    touch $TEMP
+    if [ "$line_num" = "1" ]; then
+        echo "Nothing remove. Note file is empty."
+        exit 0
+    fi
+
     line=$(awk 'END {print}' $FILE)
     if [ "$line" = "--------" ]; then
         line=''
@@ -139,52 +229,28 @@ remove () {
     if [ "$ans" = "y" ] || [ "$ans" = "Y" ] || [ "$ans" = "yes" ]; then
         awk -v l="$line_num" 'NR < l {print}' $FILE > $TEMP
         cat $TEMP > $FILE
+        rm $TEMP
     fi
-    return 0
     }
  
-#  Open the note file in an editor
+
+# Open the note file in an editor
 edit () {
-    if [ "$EDITOR" = "nvim" ] || [ "$EDITOR" = "vim" ]; then 
-        if test -z "$DEFAULT_VIM_COMMANDS"; then
-            $EDITOR  $FILE
-        else
-            $EDITOR -c "$DEFAULT_VIM_COMMANDS" $FILE
+    if [ "${EDITOR#*vim}" = '' ]
+        then
+            if test -z "$DEFAULT_VIM_COMMANDS"; then
+                $EDITOR  $FILE
+            else
+                $EDITOR -c "$DEFAULT_VIM_COMMANDS" $FILE
         fi
     else
         $EDITOR  $FILE
     fi
-    return 0
     }
  
  
-#  Save the notes
  
-# Swap
-doSWP () {
-    if test -f $SWP; then
-        echo swap file found
-    else
-        touch $SWP
-        echo creating empty swap file
-        date > $SWP
-    fi
-    cat $FILE > $TEMP
-    cat $SWP > $FILE
-    cat $TEMP > $SWP
-    echo swapped
-    return 0
-    }
- 
- 
-# Full
-print_full () {
-    $CAT $FILE
-    return 0
-}
- 
- 
-# Delete
+# Clear the note file with confirmation.
 delete () {
     $CAT $FILE
     echo "  $(awk 'END {print NR}' $FILE) lines total"
@@ -193,49 +259,12 @@ delete () {
     if [ "$ans" = "y" ] || [ "$ans" = "Y" ] || [ "$ans" = "yes" ]; then
         date > $FILE
     fi
-    return 0
 }
  
  
-# Archive
-make_new_archive () {
-    if [ "$(awk 'END {print NR}' $FILE)" = "1" ]; then echo empty; exit 1; fi
-    printf "    Archive your Note File? (y/N) "
-    read -r ans
-    if [ "$ans" = "y" ] || [ "$ans" = "Y" ] || [ "$ans" = "yes" ]; then
-        path="$SVD/$(date '+%y%m%d_%H-%M-%S').no"
-        touch "$path"
-        date > "$path"
-        echo Archive >> "$path"
-        cat $FILE >> "$path"
-        date > $FILE
-        echo Archival complete
-    fi
-    return 0
-    }
- 
 
-# Show archived
-cat_archive () {
-    $CAT $ARCHIVE_DIR/*
-    return 0
-    }
- 
- 
-# Grep
-grep_notes () {
-    shift
-    args=$*
-    grep -irn --color "$args" $ARCHIVE_DIR
-    test -f $SWP && printf "%b" "\033[32m$SWP\033[00m\n"
-    grep -ins --color "$args" $SWP 
-    printf "%b" "\033[32m$FILE\033[00m\n"
-    grep -in --color "$args" $FILE 
-    return 0
-    }
- 
- 
-makeFILE () {
+# Makes note file with timestamp at the top
+make_FILE () {
     touch $FILE
     lines=$(awk 'END {print NR}' $FILE)
     if [ "$lines" -eq 0 ]; then
@@ -244,7 +273,9 @@ makeFILE () {
 }
 
 
-note_fs () {
+
+# Creates directories with readouts.
+make_dirs () {
     echo '        Creating directories'
     if test -d $BASE_DIR; then
         printf "%b"  "\033[32m$BASE_DIR    found\033[00m\n"
@@ -269,15 +300,25 @@ note_fs () {
     return $ret
 }
 
- 
-note_unfancy () {
-    if test -d $BASE_DIR && test -d $PRIVATE_DIR && test -d $ARCHIVE_DIR; then
-        note_opts "$@"
-    else
-        note_fs
-        note_opts "$@"
-    fi
-    return $?
-}
 
+ 
+# Displayed when there are no notes
+print_header () {
+    echo "
+    Note Unfancy
+
+    You don't have any notes yet, or you would see them.
+    Give noteunfancy notes.
+
+------------------------------------------------------------
+
+             Use the -h flag for more options
+"
+}
+ 
+
+# Entry point 
+# 
 note_unfancy "$@"
+#
+#
