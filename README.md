@@ -10,8 +10,8 @@ To make the most of Note Unfancy, follow these steps:
 a new note. For multi-line notes, utilize the `-m` flag.
 
 ```shell
-`$ note` This is a new note.
-`$ note` -m
+→ note This is a new note.
+→ note -m
     Notes
     Multi-line Mode:
     Enter '.' on a new line to exit
@@ -22,26 +22,25 @@ a new note. For multi-line notes, utilize the `-m` flag.
 ### The Workflow
 
 
-- **-S to Swap**: Use the `-S` flag to switch between live note files.
-- **-a to Archive**: Use the `-a` flag to archive notes for long-term storage.
-- **-g to Grep notes**: Use the `-g` flag followed by a keyword/s to search 
-for notes containing specific terms.
+- **-S to Swap**: Switch between live note files.
+- **-a to Archive**: Archive notes for long-term storage.
+- **-g to Grep notes**: Use the `-g` flag followed by keyword/s to search.
 - **-o to Open notes**: Similar to '-g', this option refine the search further
 with dmenu and opens your selection in a text editor.(requires dmenu)
 
 ```shell
-`$ note` This is the text with the keyword in it.
+→ note This is the text with the keyword in it.
 
-`$ note` -g keyword
+→ note -g keyword
 ~/.note_unfancy/.private/.swap.no
 ~/.note_unfancy/note.no
 2:    This is the note with the keyword in it.
 
-`$ note` -a
+→ note -a
     Archive your Note File? (y/N)
 Archival complete
 
-`$ note` -g keyword
+→ note -g keyword
 ~/.note_unfancy/.private/archive/240425_144735.no:4:    This is the note keywith the word in it.
 ~/.note_unfancy/.private/.swap.no
 ~/.note_unfancy/note.no
@@ -55,8 +54,7 @@ Yes, POSIX compliant.
 -Run this script directly.
 
 ### Dependencies
-   - ed (optional) I was going to make this the default but for got how to use
-   it myself.
+   - ed (optional) This was the default, but I forgot how to use ed.
    - vim or nvim (optional) Redefine the EDITOR variable after the defaults
    section to use something else.
    - bat (optional) Defaults to cat if not present.
